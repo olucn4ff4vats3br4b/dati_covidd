@@ -1,1 +1,181 @@
-Ciao Babbo
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Esercizio COVID-19 - Andamento Nazionale (AJAX classico)</title>
+    <style>
+        /* Stile semplice e scolastico */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 20px;
+            color: #333;
+        }
+        h1 {
+            color: #0056b3;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        ul {
+            background-color: #e9ecef;
+            padding: 15px 30px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 16px;
+        }
+        /* Stile Tabella */
+        .table-container {
+            overflow-x: auto; /* Per non far uscire la tabella dallo schermo */
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 14px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #0056b3;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        tr:hover {
+            background-color: #ddd;
+        }
+        #stato {
+            font-weight: bold;
+            color: orange;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Dati COVID-19 Italia</h1>
+    <p>Lettura file JSON tramite XMLHttpRequest e stampa in tabella.</p>
+
+    <div class="container">
+        <p id="stato">Caricamento dei dati in corso...</p>
+        
+        <h3>Chiavi dell'oggetto JSON:</h3>
+        <!-- Qui inserisco la lista delle chiavi -->
+        <ul id="lista-chiavi"></ul>
+    </div>
+
+    <div class="container table-container">
+        <h3>Dati giornalieri:</h3>
+        <table id="tabella-covid">
+            <thead id="tabella-head"></thead>
+            <tbody id="tabella-body"></tbody>
+        </table>
+    </div>
+
+    <script>
+        // URL dei dati fornito nella consegna
+        const urlDati = "https://raw.githubusercontent.com/pcm-dpc/COVID-19/master/dati-json/dpc-covid19-ita-andamento-nazionale.json";
+
+        // Funzione per sistemare la data (es. da "2020-02-24T18:00:00" a "2020-02-24")
+        function formattaData(dataStringa) {
+            return dataStringa.split('T')[0];
+        }
+
+        // Creazione dell'oggetto per la richiesta AJAX (metodo classico)
+        let xhr = new XMLHttpRequest();
+        
+        // Imposto il metodo GET e l'URL
+        xhr.open("GET", urlDati, true);
+
+        // Cosa fare quando la richiesta è completata
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                // Se la richiesta è andata a buon fine, converto il testo in JSON
+                let dati = JSON.parse(xhr.responseText);
+                
+                document.getElementById("stato").innerText = "Dati caricati con successo!";
+                document.getElementById("stato").style.color = "green";
+
+                // Prendo il primo elemento dell'array per estrarre le chiavi
+                let primoGiorno = dati[0];
+                
+                // USO OBJECT.KEYS come richiesto dalla consegna
+                let chiavi = Object.keys(primoGiorno);
+
+                // 1. Stampo le chiavi nella lista <ul>
+                let listaEl = document.getElementById("lista-chiavi");
+                chiavi.forEach(chiave => {
+                    let li = document.createElement("li");
+                    li.innerText = chiave;
+                    listaEl.appendChild(li);
+                });
+
+                // 2. Costruisco l'intestazione della tabella (thead)
+                let thead = document.getElementById("tabella-head");
+                let rigaIntestazione = "<tr>";
+                for(let k = 0; k < chiavi.length; k++) {
+                    rigaIntestazione += "<th>" + chiavi[k] + "</th>";
+                }
+                rigaIntestazione += "</tr>";
+                thead.innerHTML = rigaIntestazione;
+
+                // 3. Costruisco il corpo della tabella (tbody)
+                let tbody = document.getElementById("tabella-body");
+                let righeTabella = "";
+
+                // Ciclo su tutti i giorni presenti nel JSON
+                for (let i = 0; i < dati.length; i++) {
+                    let giorno = dati[i];
+                    righeTabella += "<tr>";
+
+                    // Per ogni giorno, ciclo su tutte le chiavi per mettere i valori nelle colonne
+                    for (let j = 0; j < chiavi.length; j++) {
+                        let nomeChiave = chiavi[j];
+                        let valore = giorno[nomeChiave];
+
+                        // Se il campo è la data, la formatto
+                        if (nomeChiave === "data") {
+                            valore = formattaData(valore);
+                        }
+                        
+                        // Se il valore è nullo, scrivo N/A
+                        if (valore === null) {
+                            valore = "N/A";
+                        }
+
+                        righeTabella += "<td>" + valore + "</td>";
+                    }
+                    
+                    righeTabella += "</tr>";
+                }
+
+                // Inserisco tutte le righe nell'HTML
+                tbody.innerHTML = righeTabella;
+
+            } else {
+                // Errore di caricamento (es. pagina non trovata 404)
+                document.getElementById("stato").innerText = "Errore nel caricamento dei dati. Stato: " + xhr.status;
+                document.getElementById("stato").style.color = "red";
+            }
+        };
+
+        // Cosa fare se c'è un errore di rete
+        xhr.onerror = function() {
+            document.getElementById("stato").innerText = "Errore di connessione.";
+            document.getElementById("stato").style.color = "red";
+        };
+
+        // Invio la richiesta
+        xhr.send();
+
+    </script>
+</body>
+</html>
